@@ -22,9 +22,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const react_1 = __importStar(require("react"));
 const ink_1 = require("ink");
+const axios_1 = __importDefault(require("axios"));
 let preLine = [{ character: " ", color: "white" },
     { character: " ", color: "white" },
     { character: " ", color: "white" },
@@ -39,38 +43,67 @@ let preLines = [
     preLine,
 ];
 // @ts-ignore
+const checkDict = async (word) => {
+    try {
+        await axios_1.default.get(`https://api.wordnik.com/v4/word.json/${word}/definitions\?limit\=200\&includeRelated\=false\&useCanonical\=false\&includeTags\=false\&api_key\=a2a73e7b926c924fad7001ca3111acd55af2ffabf50eb4ae5`);
+        return true;
+    }
+    catch (error) {
+        return false;
+    }
+};
 const App = () => {
     const { exit } = (0, ink_1.useApp)();
-    (0, ink_1.useInput)((input, key) => {
-        if (key.escape) {
-            exit();
-        }
-        else if (key.return) {
-            setLines([
-                ...lines.slice(0, pos.y),
-                curLine,
-                ...lines.slice(pos.y + 1),
-            ]);
-            setCurLine(preLine);
-            setPos({ x: 0, y: pos.y + 1 });
-        }
-        else if (key.delete && key.meta === false) {
-            if (pos.x > 0) {
-                setCurLine([
-                    ...curLine.slice(0, pos.x - 1),
-                    ...preLine.slice(0, 5 - pos.x + 1)
-                ]);
-                setPos({ ...pos, x: pos.x - 1 });
+    (0, ink_1.useInput)(async (input, key) => {
+        if (!gameOver) {
+            if (key.escape) {
+                exit();
             }
-        }
-        else if (pos.x < 5) {
-            if (/^[A-Z]$/i.test(input)) {
-                setCurLine([
-                    ...curLine.slice(0, pos.x),
-                    { character: input, color: "white" },
-                    ...curLine.slice(pos.x + 1),
-                ]);
-                setPos({ ...pos, x: pos.x + 1 });
+            else if (key.return) {
+                if (/^[A-Z]$/i.test(curLine.map(val => val.character).join("")) === false) {
+                    let t = curLine.map((val) => val.character);
+                    if (word == t.join("")) {
+                        setGameOver(true);
+                        let temp = curLine.map(value => Object({ character: value.character, color: "green" }));
+                        setCurLine(temp);
+                        setLines([
+                            ...lines.slice(0, pos.y),
+                            temp,
+                            ...lines.slice(pos.y + 1),
+                        ]);
+                    }
+                    else {
+                        // @ts-ignore
+                        let response = await checkDict(t.join(""));
+                        console.log(response);
+                        setLines([
+                            ...lines.slice(0, pos.y),
+                            curLine,
+                            ...lines.slice(pos.y + 1),
+                        ]);
+                    }
+                    setCurLine(preLine);
+                    setPos({ x: 0, y: pos.y + 1 });
+                }
+            }
+            else if (key.delete && key.meta === false) {
+                if (pos.x > 0) {
+                    setCurLine([
+                        ...curLine.slice(0, pos.x - 1),
+                        ...preLine.slice(0, 5 - pos.x + 1)
+                    ]);
+                    setPos({ ...pos, x: pos.x - 1 });
+                }
+            }
+            else if (pos.x < 5) {
+                if (/^[A-Z]$/i.test(input)) {
+                    setCurLine([
+                        ...curLine.slice(0, pos.x),
+                        { character: input, color: "white" },
+                        ...curLine.slice(pos.x + 1),
+                    ]);
+                    setPos({ ...pos, x: pos.x + 1 });
+                }
             }
         }
     });
@@ -80,6 +113,8 @@ const App = () => {
         [..."asdfghjkl"].map(val => Object({ character: val, color: "white" })),
         [..."zxcvbnm"].map(val => Object({ character: val, color: "white" }))
     ]);
+    const word = "crane";
+    const [gameOver, setGameOver] = (0, react_1.useState)(false);
     const [pos, setPos] = (0, react_1.useState)({ x: 0, y: 0 });
     const [lines, setLines] = (0, react_1.useState)(preLines);
     const [curLine, setCurLine] = (0, react_1.useState)([{ character: " ", color: "white" },
@@ -91,19 +126,19 @@ const App = () => {
         react_1.default.createElement(ink_1.Box, { flexDirection: 'column', height: 3 * 6 }, lines.map((line, y) => (react_1.default.createElement(ink_1.Box, { flexDirection: 'row', height: 3, key: y, width: 5 * 5 }, y === pos.y ?
             curLine.map((box, x) => (react_1.default.createElement(ink_1.Box, { key: x, flexDirection: "column" },
                 react_1.default.createElement(ink_1.Text, { color: box.color }, "\u256D\u2500\u2500\u2500\u256E"),
-                react_1.default.createElement(ink_1.Text, null,
+                react_1.default.createElement(ink_1.Text, { color: box.color },
                     "\u2502 ",
                     pos.x == x && pos.y == y ? "_" : box.character,
                     " \u2502"),
-                react_1.default.createElement(ink_1.Text, null, "\u2570\u2500\u2500\u2500\u256F"))))
+                react_1.default.createElement(ink_1.Text, { color: box.color }, "\u2570\u2500\u2500\u2500\u256F"))))
             :
                 line.map((box, x) => (react_1.default.createElement(ink_1.Box, { key: x, flexDirection: "column" },
                     react_1.default.createElement(ink_1.Text, { color: box.color }, "\u256D\u2500\u2500\u2500\u256E"),
-                    react_1.default.createElement(ink_1.Text, null,
+                    react_1.default.createElement(ink_1.Text, { color: box.color },
                         "\u2502 ",
                         pos.x == x && pos.y == y ? "_" : box.character,
                         " \u2502"),
-                    react_1.default.createElement(ink_1.Text, null, "\u2570\u2500\u2500\u2500\u256F")))))))),
+                    react_1.default.createElement(ink_1.Text, { color: box.color }, "\u2570\u2500\u2500\u2500\u256F")))))))),
         react_1.default.createElement(ink_1.Box, { flexDirection: 'column', height: 3 * 6, marginLeft: 2 }, charmap.map((line, y) => (react_1.default.createElement(ink_1.Box, { flexDirection: 'row', height: 3, key: y, width: 5 * 10, justifyContent: "center" }, line.map((box, x) => (react_1.default.createElement(ink_1.Box, { key: x, flexDirection: "column" },
             react_1.default.createElement(ink_1.Text, { color: box.color }, "\u256D\u2500\u2500\u2500\u256E"),
             react_1.default.createElement(ink_1.Text, null,
